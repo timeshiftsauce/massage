@@ -6,10 +6,11 @@ const app = express()
 app.use(express.static(path.join(__dirname,"./public/")))
 // 数据库配置（需在宝塔面板创建）
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'crad_db',
+  host: 'edgedb-sky-dog--vercel-rgsrx7fsrwkv5uhwbte6xdu2.c-05.i.aws.edgedb.cloud',
+  port:5656,
+  user: 'sql',
   password: '3d2GiYJ5MGAGHKat',
-  database: 'crad_db',
+  database: 'main',
   waitForConnections: true,
 })
 pool.on('connection', (conn) => {
