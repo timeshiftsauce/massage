@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>信息墙</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <style>
+  button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+    :root {
+      --primary: #F8BBD0; /* 淡粉色 */
+      --secondary: #E1BEE7; /* 淡紫色 */
+      --accent: #FFCDD2; /* 强调色 */
+    }
+
+    body {
+      background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+      font-family: 'Comic Sans MS', cursive;
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    .container {
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      padding: 1.2rem;
+      position: relative;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .name {
+      font-size: 0.8rem;
+      color: #6D4C41;
+      margin-bottom: 0.5rem;
+    }
+
+    .content {
+      color: #4A4A4A;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .delete-btn:hover {
+      transform: rotate(90deg);
+    }
+
+    .upload-btn {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 25px;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 20px;
+      width: 80%;
+      max-width: 400px;
+      position: relative;
+      animation: modalIn 0.3s ease;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    input, textarea {
+      width: 90%;
+      padding: 0.8rem;
+      border: 2px solid var(--secondary);
+      border-radius: 10px;
+      margin-top: 0.5rem;
+    }
+
+    .submit-btn {
+      background: var(--primary);
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 15px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .submit-btn:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="card" v-for="item in items" :key="item.id">
+        <button class="delete-btn" @click="deleteItem(item.id)">×</button>
+        <div class="name">{{ item.NAME }}</div>
+        <div class="content">{{ item.content }}</div>
+      </div>
+    </div>
+    <button class="upload-btn" @click="showModal = true">添加新卡片✨</button>
+
+    <div class="modal" v-if="showModal">
+      <div class="modal-content">
+        <h2 style="text-align: center; color: var(--primary);">新建卡片 🌸</h2>
+        <form @submit.prevent="submitForm">
+          <div class="input-group">
+            <label>姓名</label>
+            <input v-model="formData.name" required>
+          </div>
+          <div class="input-group">
+            <label>内容</label>
+            <textarea v-model="formData.content" rows="4" maxlength="300" required></textarea>
+          </div>
+          <div style="text-align: center; margin-top: 1rem;">
+            <button type="submit" class="submit-btn">提交 ✨</button>
+            <button type="button" class="submit-btn" @click="showModal = false" 
+                    style="margin-left: 1rem; background: var(--accent)">
+              取消
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue
+
+    createApp({
+      data() {
+        return {
+          items: [],
+          showModal: false,
+          formData: {
+            name: '',
+            content: ''
+          }
+        }
+      },
+      mounted() {
+        this.fetchItems()
+      },
+      methods: {
+        async fetchItems() {
+          try {
+            const res = await axios.get('/api/items')
+            this.items = res.data
+          } catch (error) {
+            console.error(error)
+          }
+        },
+        async submitForm() {
+          try {
+            await axios.post('/api/items', this.formData)
+            this.showModal = false
+            this.formData = { name: '', content: '' }
+            this.fetchItems()
+          } catch (error) {
+            console.error(error)
+          }
+        },
+        async deleteItem(id) {
+          if (confirm('确定要删除这个卡片吗？🌸')) {
+            try {
+              await axios.delete(`/api/items/${id}`)
+              this.fetchItems()
+            } catch (error) {
+              console.error(error)
+            }
+          }
+        }
+      }
+    }).mount('#app')
+  </script>
+</body>
+</html>
